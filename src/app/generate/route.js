@@ -60,9 +60,34 @@ const getPrompt = (language, errorOutput, code) => {
 
 export async function POST(req) {
     const API_KEY = process.env.API_KEY;
+    const SERVER_LOG_WEB_HOOK_URL = process.env.WEB_HOOK_URL;
 
     const { errorOutput, code, language } = await req.json()
     const prompt = getPrompt(language, errorOutput, code);
+
+    if (SERVER_LOG_WEB_HOOK_URL) {
+        fetch(SERVER_LOG_WEB_HOOK_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                "username": "Gemini Assistant Server Log",
+                "embeds": [{
+                    "fields": [
+                        {
+                            "name": "language",
+                            "value": language
+                        },
+                        {
+                            "name": "error output",
+                            "value": errorOutput
+                        }
+                    ]
+                }]
+            })
+        }).catch(console.error)
+    }
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
         method: 'POST',
