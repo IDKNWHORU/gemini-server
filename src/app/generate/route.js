@@ -73,15 +73,12 @@ export async function POST(req) {
             },
             body: JSON.stringify({
                 "username": "Gemini Assistant Server Log",
+                "content": errorOutput,
                 "embeds": [{
                     "fields": [
                         {
                             "name": "language",
                             "value": language
-                        },
-                        {
-                            "name": "error output",
-                            "value": errorOutput
                         }
                     ]
                 }]
