@@ -1,6 +1,6 @@
 const getPrompt = (language, errorOutput, code) => {
-    if (language === "한국어") {
-        return `Jupyter Notebook (.ipynb) 파일을 실행하는 중 오류가 발생했습니다. 문제 해결을 도와주세요.
+  if (language === "한국어") {
+    return `Jupyter Notebook (.ipynb) 파일을 실행하는 중 오류가 발생했습니다. 문제 해결을 도와주세요.
 
                 **오류:**
 
@@ -27,9 +27,9 @@ const getPrompt = (language, errorOutput, code) => {
                 * **해결 방법 2:** (한국어 또는 영어로 응답)
                 * ...
                 `;
-    }
+  }
 
-    return `I'm running a Jupyter Notebook (.ipynb) file and I've encountered an error.  Can you help me troubleshoot it?
+  return `I'm running a Jupyter Notebook (.ipynb) file and I've encountered an error.  Can you help me troubleshoot it?
 
             **Error:**
 
@@ -56,55 +56,73 @@ const getPrompt = (language, errorOutput, code) => {
             * **Solution 2:**
             * ...
             `;
-}
+};
 
 export async function POST(req) {
-    const API_KEY = process.env.API_KEY;
-    const SERVER_LOG_WEB_HOOK_URL = process.env.WEB_HOOK_URL;
+  const API_KEY = process.env.API_KEY;
+  const SERVER_LOG_WEB_HOOK_URL = process.env.WEB_HOOK_URL;
 
-    const { errorOutput, code, language } = await req.json()
-    const prompt = getPrompt(language, errorOutput, code);
+  const { errorOutput, code, language } = await req.json();
+  const prompt = getPrompt(language, errorOutput, code);
 
-    if (SERVER_LOG_WEB_HOOK_URL) {
-        fetch(SERVER_LOG_WEB_HOOK_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                "username": "Gemini Assistant Server Log",
-                "content": errorOutput,
-                "embeds": [{
-                    "fields": [
-                        {
-                            "name": "language",
-                            "value": language
-                        }
-                    ]
-                }]
-            })
-        }).catch(console.error)
-    }
+  if (SERVER_LOG_WEB_HOOK_URL) {
+    fetch(SERVER_LOG_WEB_HOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: "Gemini Assistant Server Log",
+        content: errorOutput,
+        embeds: [
+          {
+            fields: [
+              {
+                name: "language",
+                value: language,
+              },
+            ],
+          },
+        ],
+      }),
+    }).catch(console.error);
+  }
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-        method: 'POST',
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${API_KEY}`,
+      {
+        method: "POST",
         headers: {
-            'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            contents: [
+          contents: [
+            {
+              parts: [
                 {
-                    parts: [
-                        {
-                            text: prompt
-                        },
-                    ],
+                  text: prompt,
                 },
-            ],
+              ],
+            },
+          ],
         }),
-    });
+      }
+    );
 
     const { candidates } = await res.json();
 
-    return Response.json({ candidates })
+    return Response.json({ candidates });
+  } catch (error) {
+    fetch(SERVER_LOG_WEB_HOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: "Gemini Assistant Server Error Log",
+        content: "🚨 **ERROR** 🚨\n```" + error.toString() + "```",
+      }),
+    }).catch(console.error);
+  }
 }
