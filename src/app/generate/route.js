@@ -1,3 +1,6 @@
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 const getPrompt = (language, errorOutput, code) => {
   if (language === "한국어") {
     return `Jupyter Notebook (.ipynb) 파일을 실행하는 중 다음 오류가 발생했습니다. 초보 사용자도 이해할 수 있도록 문제 해결을 도와주세요.
