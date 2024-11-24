@@ -31,11 +31,6 @@ const getPrompt = (language, errorOutput, code) => {
 
             ---
 
-            **제한 사항:**
-
-            * 500자 이내로 답변해주세요.
-            * 한국어 또는 영어로 답변 가능합니다.
-
             **출력 형식:**
 
             * **1. 오류 유형 및 발생 위치:** (구체적으로 설명)
@@ -74,10 +69,6 @@ const getPrompt = (language, errorOutput, code) => {
 
           ---
 
-          **Constraints:**
-
-          * Please keep your response within 500 characters.
-          * Responses can be in Korean or English.
 
           **Output Format:**
 
@@ -121,7 +112,7 @@ export async function POST(req) {
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-exp-1114:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-exp-1121:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: {
@@ -141,9 +132,21 @@ export async function POST(req) {
       }
     );
 
-    const { candidates } = await res.json();
+    if (res.status === 200) {
+      const jsonParsedData = await res.json();
 
-    return Response.json({ candidates });
+      const { candidates } = jsonParsedData;
+
+      return Response.json({ candidates });
+    } else {
+      const errorData = await res.json();
+
+      const { code, status, message } = errorData.error;
+
+      throw new Error(`code: ${code}
+, message: ${message}
+, status: ${status}`);
+    }
   } catch (error) {
     fetch(SERVER_LOG_WEB_HOOK_URL, {
       method: "POST",
