@@ -87,27 +87,58 @@ export async function POST(req) {
   const { errorOutput, code, language } = await req.json();
   const prompt = getPrompt(language, errorOutput, code);
 
-  if (SERVER_LOG_WEB_HOOK_URL) {
-    fetch(SERVER_LOG_WEB_HOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: "Gemini Assistant Server Log",
-        content: errorOutput,
-        embeds: [
-          {
-            fields: [
-              {
-                name: "language",
-                value: language,
-              },
-            ],
-          },
-        ],
-      }),
-    }).catch(console.error);
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-exp-1121:countTokens?key=${API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+        }),
+      }
+    );
+
+    const { totalTokens } = await res.json();
+
+    if (SERVER_LOG_WEB_HOOK_URL) {
+      fetch(SERVER_LOG_WEB_HOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: "Gemini Assistant Server Log",
+          content: errorOutput.substr(0, 2000),
+          embeds: [
+            {
+              fields: [
+                {
+                  name: "language",
+                  value: language,
+                },
+                {
+                  name: "tokens",
+                  value: totalTokens,
+                },
+              ],
+            },
+          ],
+        }),
+      }).catch(console.log);
+    }
+  } catch (error) {
+    console.log(error);
   }
 
   try {
@@ -143,11 +174,15 @@ export async function POST(req) {
 
       const { code, status, message } = errorData.error;
 
-      throw new Error(`code: ${code}
-, message: ${message}
-, status: ${status}`);
+      throw new Error(
+        `code: ${code} , message: ${message} , status: ${status}`
+      );
     }
   } catch (error) {
+    console.log(
+      `errorOutput length: ${errorOutput.length}, code length: ${code.length}`
+    );
+
     fetch(SERVER_LOG_WEB_HOOK_URL, {
       method: "POST",
       headers: {
