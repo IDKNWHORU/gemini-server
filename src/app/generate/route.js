@@ -80,12 +80,24 @@ const getPrompt = (language, errorOutput, code) => {
           `;
 };
 
+const removeUnnecessaryErrorOutput = (errorOutput) => {
+  const withoutColorCodes = errorOutput.replace(/\x1b\[[0-9;]*[mG]/g, "");
+
+  const lines = withoutColorCodes.split("\n");
+
+  const cleanMessage = lines.map((line) => line.trim()).join("\n");
+
+  return cleanMessage;
+};
+
 export async function POST(req) {
   const API_KEY = process.env.API_KEY;
   const SERVER_LOG_WEB_HOOK_URL = process.env.WEB_HOOK_URL;
 
   const { errorOutput, code, language } = await req.json();
-  const prompt = getPrompt(language, errorOutput, code);
+  const cleanedErrorOutput = removeUnnecessaryErrorOutput(errorOutput);
+
+  const prompt = getPrompt(language, cleanedErrorOutput, code);
 
   try {
     const res = await fetch(
@@ -119,7 +131,7 @@ export async function POST(req) {
         },
         body: JSON.stringify({
           username: "Gemini Assistant Server Log",
-          content: errorOutput.substr(0, 2000),
+          content: cleanedErrorOutput.substr(0, 2000),
           embeds: [
             {
               fields: [
@@ -180,7 +192,7 @@ export async function POST(req) {
     }
   } catch (error) {
     console.log(
-      `errorOutput length: ${errorOutput.length}, code length: ${code.length}`
+      `errorOutput length: ${cleanedErrorOutput.length}, code length: ${code.length}`
     );
 
     fetch(SERVER_LOG_WEB_HOOK_URL, {
