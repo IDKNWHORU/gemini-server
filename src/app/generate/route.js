@@ -101,7 +101,7 @@ export async function POST(req) {
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-exp-1121:countTokens?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:countTokens?key=${API_KEY}`,
       {
         method: "POST",
         headers: {
